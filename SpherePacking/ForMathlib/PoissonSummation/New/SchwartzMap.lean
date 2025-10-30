@@ -74,12 +74,71 @@ theorem tsum_mFourier_coeff_eq_tsum_fourierIntegralof_rpow_decay_of_summable {b 
     ∑' n : d → ℤ, 𝓕 f (fun i => n i) • mFourier n (fun i => x i) := by
   sorry
 
+#check Real.summable_nat_rpow
+
+noncomputable def euclideanNorm : (d → ℤ) → ℝ :=
+  fun v ↦ @Norm.norm (EuclideanSpace ℝ d) (PiLp.instNorm 2 fun _ ↦ ℝ) (fun i ↦ (v i : ℝ))
+
+@[simp]
+lemma euclideanNorm_def {v : d → ℤ} :
+    euclideanNorm v =
+    @Norm.norm (EuclideanSpace ℝ d) (PiLp.instNorm 2 fun _ ↦ ℝ) (fun i ↦ (v i : ℝ)) :=
+  rfl
+
 /-- d-dimensional analogue of the absolute convergence of p-series. -/
-lemma summable_abs_int_rpow {b : ℝ} :
-    Summable (fun (v : d → ℤ) =>
-    @Norm.norm (EuclideanSpace ℝ d) (PiLp.instNorm 2 fun x ↦ ℝ) (fun i => v i) ^ (-b)) := by
+lemma summable_abs_int_rpow_iff {p : ℝ} (hd : Fintype.card d > 0) :
+    Summable (fun (v : d → ℤ) ↦ euclideanNorm v ^ (-p)) ↔
+    p > Fintype.card d := by
+  constructor
+  · intro hd
+    sorry
+  · intro hp
+    suffices conv_l_inf : Summable fun (v : d → ℤ) ↦
+        (Real.sqrt (Fintype.card d) * ‖fun i ↦ ↑(v i)‖) ^ (-p) by
+      apply conv_l_inf.of_nonneg_of_le
+      · intro v
+        rw[euclideanNorm_def]
+        positivity
+      · intro v
+        if hv : v = 0 then
+          calc
+            (euclideanNorm v) ^ (-p) = 0 := by
+              rw [euclideanNorm_def, rpow_eq_zero_iff_of_nonneg (norm_nonneg _)]
+              constructor
+              · rw[norm_eq_zero, hv]
+                simp
+                rfl /- Why is this line needed? -/
+              · linarith
+            _ = (Real.sqrt (Fintype.card d) * ‖fun i ↦ ↑(v i)‖) ^ (-p) := by
+              symm
+              rw [rpow_eq_zero_iff_of_nonneg (mul_nonneg (sqrt_nonneg _) (norm_nonneg _))]
+              constructor
+              · apply mul_eq_zero_of_right
+                rw[norm_eq_zero, hv]
+              · linarith
+          rfl
+        else
+          refine (rpow_le_rpow_iff_of_neg ?_ ?_ ?_).mpr ?_
+          · refine norm_pos_iff.mpr ?_
+            contrapose! hv
+            funext i
+            apply Int.cast_injective (α := ℝ)
+            rw[congr_fun hv i]
+            simp
+          · apply mul_pos (sqrt_pos_of_pos (Nat.cast_pos'.mpr hd))
+            refine norm_pos_iff.mpr ?_
+            contrapose! hv
+            funext i
+            rw[congr_fun hv i]
+          · linarith
+          calc
+            √↑(Fintype.card d) * ‖fun i ↦ v i‖ = √↑(Fintype.card d * (‖fun i ↦ v i‖)^2) := by sorry
+            _ ≤ euclideanNorm v := by sorry
+    sorry
+
+lemma summable_abs_int_rpow {p : ℝ} (hp : Fintype.card d < p) :
+    Summable (fun (v : d → ℤ) ↦ euclideanNorm v ^ (-p)) := by
   sorry
-  /-There should be a better way to write this. -/
 
 /-- The inclusion from ℤᵈ to ℝᵈ maps the filter of cofinite sets to the filter of cocompact sets.
 This is the d-dimensional analogue of `Int.tendsto_coe_cofinite`. -/
