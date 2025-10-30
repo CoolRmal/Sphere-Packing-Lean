@@ -75,9 +75,9 @@ theorem tsum_mFourier_coeff_eq_tsum_fourierIntegralof_rpow_decay_of_summable {b 
   sorry
 
 /-- d-dimensional analogue of the absolute convergence of p-series. -/
-lemma summable_abs_int_rpow {b : ℝ} (hb : Fintype.card d < b) :
-    Summable (fun (n : d → ℤ) =>
-    @Norm.norm (EuclideanSpace ℝ d) (PiLp.instNorm 2 fun x ↦ ℝ) (fun i => n i) ^ (-b)) := by
+lemma summable_abs_int_rpow {b : ℝ} :
+    Summable (fun (v : d → ℤ) =>
+    @Norm.norm (EuclideanSpace ℝ d) (PiLp.instNorm 2 fun x ↦ ℝ) (fun i => v i) ^ (-b)) := by
   sorry
   /-There should be a better way to write this. -/
 
