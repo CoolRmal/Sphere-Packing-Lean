@@ -91,13 +91,12 @@ lemma summable_abs_int_rpow_iff {p : ℝ} (hd : Fintype.card d > 0) :
     p > Fintype.card d := by
   constructor
   · intro hd
-    sorry
-  · intro hp
-    suffices conv_l_inf : Summable fun (v : d → ℤ) ↦
+    suffices conv_l_inf : ¬Summable fun (v : d → ℤ) ↦
         (Real.sqrt (Fintype.card d) * ‖fun i ↦ ↑(v i)‖) ^ (-p) by
-      apply conv_l_inf.of_nonneg_of_le
+      contrapose! conv_l_inf
+      stop /- Numerous errors because calculation is backwards -/
+      apply hd.of_nonneg_of_le
       · intro v
-        rw[euclideanNorm_def]
         positivity
       · intro v
         if hv : v = 0 then
@@ -132,13 +131,76 @@ lemma summable_abs_int_rpow_iff {p : ℝ} (hd : Fintype.card d > 0) :
             rw[congr_fun hv i]
           · linarith
           calc
-            √↑(Fintype.card d) * ‖fun i ↦ v i‖ = √↑(Fintype.card d * (‖fun i ↦ v i‖)^2) := by sorry
-            _ ≤ euclideanNorm v := by sorry
+            √↑(Fintype.card d) * ‖fun i ↦ v i‖ = √↑(Fintype.card d * (‖fun i ↦ v i‖)^2) := by
+              rw[sqrt_mul (Nat.cast_nonneg _), sqrt_sq (norm_nonneg _)]
+            _ ≤ euclideanNorm v := by
+              rw[euclideanNorm_def, PiLp.norm_eq_of_L2]
+              apply sqrt_le_sqrt
+      sorry
+    sorry
+  · intro hp
+    suffices conv_l_inf : Summable fun (v : d → ℤ) ↦
+        ‖fun i ↦ ↑(v i)‖ ^ (-p) by
+      apply conv_l_inf.of_nonneg_of_le
+      · intro v
+        rw[euclideanNorm_def]
+        positivity
+      · intro v
+        if hv : v = 0 then
+          calc
+            (euclideanNorm v) ^ (-p) = 0 := by
+              rw [euclideanNorm_def, rpow_eq_zero_iff_of_nonneg (norm_nonneg _)]
+              constructor
+              · rw[norm_eq_zero, hv]
+                simp
+                rfl /- Why is this line needed? -/
+              · linarith
+            _ = ‖fun i ↦ ↑(v i)‖ ^ (-p) := by
+              symm
+              rw [rpow_eq_zero_iff_of_nonneg (norm_nonneg _)]
+              constructor
+              · rw[norm_eq_zero, hv]
+              · linarith
+          rfl
+        else
+          refine (rpow_le_rpow_iff_of_neg ?_ ?_ ?_).mpr ?_
+          · refine norm_pos_iff.mpr ?_
+            contrapose! hv
+            funext i
+            apply Int.cast_injective (α := ℝ)
+            rw[congr_fun hv i]
+            simp
+          · refine norm_pos_iff.mpr ?_
+            contrapose! hv
+            funext i
+            rw[congr_fun hv i]
+          · linarith
+          /- rw[Pi.norm_def, euclideanNorm_def, PiLp.norm_eq_of_L2] -/
+          calc
+            ‖fun i ↦ v i‖ = Finset.univ.sup fun i ↦ ‖v i‖₊ := by rw[Pi.norm_def]
+            _ ≤ NNReal.sqrt (∑ i, ‖v i‖₊ ^ 2) := by
+              norm_cast
+              rw[Finset.sup_le_iff]
+              intro k _
+              rw[NNReal.le_sqrt_iff_sq_le]
+              calc
+                ‖v k‖₊ ^ 2 = ∑ i ∈ {k}, ‖v i‖₊ ^ 2 := by rw[Finset.sum_singleton]
+                _ ≤ ∑ i, ‖v i‖₊ ^ 2 := by
+                  refine Finset.sum_le_univ_sum_of_nonneg ?_
+                  intro i
+                  exact sq_nonneg _
+            _ = euclideanNorm v := by
+              rw[euclideanNorm_def, PiLp.norm_eq_of_L2]
+              norm_cast
+              simp
     sorry
 
 lemma summable_abs_int_rpow {p : ℝ} (hp : Fintype.card d < p) :
     Summable (fun (v : d → ℤ) ↦ euclideanNorm v ^ (-p)) := by
   sorry
+
+example {a b : NNReal} (hab : (a : ℝ) ≤ (b : ℝ)) : a ≤ b := by
+  exact hab
 
 /-- The inclusion from ℤᵈ to ℝᵈ maps the filter of cofinite sets to the filter of cocompact sets.
 This is the d-dimensional analogue of `Int.tendsto_coe_cofinite`. -/
