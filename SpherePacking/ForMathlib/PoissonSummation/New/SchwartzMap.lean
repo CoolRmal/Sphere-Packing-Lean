@@ -74,27 +74,51 @@ theorem tsum_mFourier_coeff_eq_tsum_fourierIntegralof_rpow_decay_of_summable {b 
     ∑' n : d → ℤ, 𝓕 f (fun i => n i) • mFourier n (fun i => x i) := by
   sorry
 
-#check Real.summable_nat_rpow
+noncomputable def euclideanNorm : (d → ℝ) → ℝ :=
+  fun v ↦ @Norm.norm (EuclideanSpace ℝ d) _ v
 
-noncomputable def euclideanNorm : (d → ℤ) → ℝ :=
-  fun v ↦ @Norm.norm (EuclideanSpace ℝ d) (PiLp.instNorm 2 fun _ ↦ ℝ) (fun i ↦ (v i : ℝ))
+def toReal : ℤ → ℝ := fun x ↦ x /- Is this defined somewhere? -/
 
 @[simp]
-lemma euclideanNorm_def {v : d → ℤ} :
-    euclideanNorm v =
-    @Norm.norm (EuclideanSpace ℝ d) (PiLp.instNorm 2 fun _ ↦ ℝ) (fun i ↦ (v i : ℝ)) :=
+lemma toReal_def {x : ℤ} : toReal x = x := rfl
+
+lemma toReal_injective : Function.Injective toReal :=
+    Isometry.injective fun _ ↦ congrFun rfl
+
+@[simp]
+lemma euclideanNorm_def {v : d → ℝ} :
+    euclideanNorm v = @Norm.norm (EuclideanSpace ℝ d) _ v :=
   rfl
+
+lemma supNorm_le_euclideanNorm {v : d → ℝ} : ‖v‖ ≤ euclideanNorm v := by
+  calc
+    ‖v‖ = Finset.univ.sup fun i ↦ ‖v i‖₊ := by rw[Pi.norm_def]
+    _ ≤ NNReal.sqrt (∑ i, ‖v i‖₊ ^ 2) := by
+      norm_cast
+      rw[Finset.sup_le_iff]
+      intro k _
+      rw[NNReal.le_sqrt_iff_sq_le]
+      calc
+        ‖v k‖₊ ^ 2 = ∑ i ∈ {k}, ‖v i‖₊ ^ 2 := by rw[Finset.sum_singleton]
+        _ ≤ ∑ i, ‖v i‖₊ ^ 2 := by
+          refine Finset.sum_le_univ_sum_of_nonneg ?_
+          intro i
+          exact sq_nonneg _
+    _ = euclideanNorm v := by
+      rw[euclideanNorm_def, PiLp.norm_eq_of_L2]
+      norm_cast
+      simp
 
 /-- d-dimensional analogue of the absolute convergence of p-series. -/
 lemma summable_abs_int_rpow_iff {p : ℝ} (hd : Fintype.card d > 0) :
-    Summable (fun (v : d → ℤ) ↦ euclideanNorm v ^ (-p)) ↔
+    Summable (fun (v : d → ℤ) ↦ euclideanNorm (toReal ∘ v) ^ (-p)) ↔
     p > Fintype.card d := by
   constructor
   · intro hd
     suffices conv_l_inf : ¬Summable fun (v : d → ℤ) ↦
         (Real.sqrt (Fintype.card d) * ‖fun i ↦ ↑(v i)‖) ^ (-p) by
       contrapose! conv_l_inf
-      stop /- Numerous errors because calculation is backwards -/
+      stop /- Numerous errors because calculation is backwards. Will be fixed
       apply hd.of_nonneg_of_le
       · intro v
         positivity
@@ -135,12 +159,12 @@ lemma summable_abs_int_rpow_iff {p : ℝ} (hd : Fintype.card d > 0) :
               rw[sqrt_mul (Nat.cast_nonneg _), sqrt_sq (norm_nonneg _)]
             _ ≤ euclideanNorm v := by
               rw[euclideanNorm_def, PiLp.norm_eq_of_L2]
-              apply sqrt_le_sqrt
+              apply sqrt_le_sqrt  -/
       sorry
     sorry
   · intro hp
     suffices conv_l_inf : Summable fun (v : d → ℤ) ↦
-        ‖fun i ↦ ↑(v i)‖ ^ (-p) by
+        ‖v‖ ^ (-p) by
       apply conv_l_inf.of_nonneg_of_le
       · intro v
         rw[euclideanNorm_def]
@@ -148,14 +172,14 @@ lemma summable_abs_int_rpow_iff {p : ℝ} (hd : Fintype.card d > 0) :
       · intro v
         if hv : v = 0 then
           calc
-            (euclideanNorm v) ^ (-p) = 0 := by
+            (euclideanNorm (toReal ∘ v)) ^ (-p) = 0 := by
               rw [euclideanNorm_def, rpow_eq_zero_iff_of_nonneg (norm_nonneg _)]
               constructor
               · rw[norm_eq_zero, hv]
-                simp
-                rfl /- Why is this line needed? -/
+                funext
+                simp[toReal]
               · linarith
-            _ = ‖fun i ↦ ↑(v i)‖ ^ (-p) := by
+            _ = ‖v‖ ^ (-p) := by
               symm
               rw [rpow_eq_zero_iff_of_nonneg (norm_nonneg _)]
               constructor
@@ -167,36 +191,17 @@ lemma summable_abs_int_rpow_iff {p : ℝ} (hd : Fintype.card d > 0) :
           · refine norm_pos_iff.mpr ?_
             contrapose! hv
             funext i
-            apply Int.cast_injective (α := ℝ)
-            rw[congr_fun hv i]
-            simp
-          · refine norm_pos_iff.mpr ?_
-            contrapose! hv
-            funext i
-            rw[congr_fun hv i]
+            have := congrFun hv i
+            simp only [Function.comp_apply, toReal_def, PiLp.zero_apply, Int.cast_eq_zero,
+              Pi.zero_apply] at this ⊢
+            exact this
+          · exact norm_pos_iff.mpr hv
           · linarith
-          /- rw[Pi.norm_def, euclideanNorm_def, PiLp.norm_eq_of_L2] -/
-          calc
-            ‖fun i ↦ v i‖ = Finset.univ.sup fun i ↦ ‖v i‖₊ := by rw[Pi.norm_def]
-            _ ≤ NNReal.sqrt (∑ i, ‖v i‖₊ ^ 2) := by
-              norm_cast
-              rw[Finset.sup_le_iff]
-              intro k _
-              rw[NNReal.le_sqrt_iff_sq_le]
-              calc
-                ‖v k‖₊ ^ 2 = ∑ i ∈ {k}, ‖v i‖₊ ^ 2 := by rw[Finset.sum_singleton]
-                _ ≤ ∑ i, ‖v i‖₊ ^ 2 := by
-                  refine Finset.sum_le_univ_sum_of_nonneg ?_
-                  intro i
-                  exact sq_nonneg _
-            _ = euclideanNorm v := by
-              rw[euclideanNorm_def, PiLp.norm_eq_of_L2]
-              norm_cast
-              simp
+          exact supNorm_le_euclideanNorm
     sorry
 
 lemma summable_abs_int_rpow {p : ℝ} (hp : Fintype.card d < p) :
-    Summable (fun (v : d → ℤ) ↦ euclideanNorm v ^ (-p)) := by
+    Summable (fun (v : d → ℤ) ↦ euclideanNorm (toReal ∘ v) ^ (-p)) := by
   sorry
 
 example {a b : NNReal} (hab : (a : ℝ) ≤ (b : ℝ)) : a ≤ b := by
