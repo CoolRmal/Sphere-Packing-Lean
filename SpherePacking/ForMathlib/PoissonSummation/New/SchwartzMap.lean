@@ -109,6 +109,23 @@ lemma supNorm_le_euclideanNorm {v : d → ℝ} : ‖v‖ ≤ euclideanNorm v := 
       norm_cast
       simp
 
+lemma euclideanNorm_le_sqrt_d_mul_supNorm {v : d → ℝ} : euclideanNorm v ≤ Fintype.card d * ‖v‖ := by
+  calc
+    euclideanNorm v = Real.sqrt (∑ i, (‖v i‖) ^ 2) := by
+      rw[euclideanNorm_def, PiLp.norm_eq_of_L2]
+    _ ≤ Real.sqrt (∑ i, (‖v‖) ^ 2) := by
+      apply sqrt_le_sqrt
+      apply Finset.sum_le_sum
+      intro i _
+      rw[sq_le_sq₀ (norm_nonneg _) (norm_nonneg _)]
+      exact Finset.le_sup (α := NNReal) (f := fun b ↦ ‖v b‖₊) (Finset.mem_univ i)
+    _ = Real.sqrt (Fintype.card d * ‖v‖ ^ 2) := by
+      congr
+      rw[Fintype.card_eq_sum_ones]
+      sorry /-continue-/
+    _ = Real.sqrt (Fintype.card d) * ‖v‖ := by
+      rw[sqrt_mul (Nat.cast_nonneg _), sqrt_sq (norm_nonneg _)]
+
 /-- d-dimensional analogue of the absolute convergence of p-series. -/
 lemma summable_abs_int_rpow_iff {p : ℝ} (hd : Fintype.card d > 0) :
     Summable (fun (v : d → ℤ) ↦ euclideanNorm (toReal ∘ v) ^ (-p)) ↔
