@@ -278,7 +278,4 @@ theorem _root_.ZLattice.tsum_mFourier_coeff_eq_tsum_fourierIntegral (f : 𝓢(Eu
 
 end SchwartzMap
 
-#eval 2 + 1
-#eval "This is on the computer at CMU"
-
 #min_imports
